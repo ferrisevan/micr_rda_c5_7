@@ -27,30 +27,28 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(janitor)
-read.csv("data/colloquium_assessment.csv")
+library(stringr)
 colloquium <- read_csv(
   "data/colloquium_assessment.csv",
-  skip = 3,                      
-  na = c("N/A", "", "NA"),
   show_col_types = FALSE
 ) %>%
   clean_names()
-names(colloquium)
-colloquium_long <- colloquium %>%
+colloquium_clean <- colloquium %>%
+  filter(!str_detect(as.character(start_date), "^\\{"))
+colloquium_long <- colloquium_clean %>%
   pivot_longer(
-    cols = x4:x11,
+    cols = q7:q10,
     names_to = "assessment_item",
     values_to = "score"
-  )
-glimpse(colloquium_long)
+  ) %>%
+  filter(str_detect(score, "^[1-5]$")) %>%
+  mutate(score = as.numeric(score))
 
 #Question 3
-library(dplyr)
-
-x7_10_avg <- colloquium_long %>%
-  filter(assessment_item %in% c("x7", "x8", "x9", "x10")) %>%
-  group_by(assessment_item) %>%
+student_avg <- colloquium_long %>%
+  group_by(response_id) %>%
   summarise(
-    average_score = mean(score, na.rm = TRUE)
+    avg_q7_q10 = mean(score),
+    .groups = "drop"
   )
-x7_10_avg
+student_avg
